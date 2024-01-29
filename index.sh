@@ -63,6 +63,7 @@ torrents_executor() {
     # Loop through the entries and execute torrents
     while read -r folder session; do
         xterm -e "rtorrent -d '$folder' -s '$session'" &
+        echo "rtorrent -d '$folder' -s '$session'"
     done < <(sqlite3 "$db_file" "SELECT folder, session FROM directory;")
 }
 
