@@ -48,7 +48,7 @@ while true; do
     case $choice in
         1) check_folder_structure && add_directories ;;
         2) # Implement Torrents Executor logic here ;;
-        3) exit() ;;
+        3) exit ;;
         *) echo "Invalid option. Please try again." ;;
     esac
 
