@@ -35,11 +35,25 @@ directory_manager() {
                 ;;
             2)
                 echo "Directories:"
-                sqlite3 "$db_file" "SELECT * FROM directory;"
+                # Retrieve all directories
+                directories=$(sqlite3 "$db_file" "SELECT id, folder, session FROM directory;")
+                # Initialize counter
+                counter=1
+                # Loop through directories
+                while IFS='|' read -r id folder session; do
+                    echo "$counter - $folder - $session"
+                    # Update ID if necessary
+                    if [ "$counter" != "$id" ]; then
+                        sqlite3 "$db_file" "UPDATE directory SET id=$counter WHERE id=$id;"
+                    fi
+                    ((counter++))
+                done <<< "$directories"
                 ;;
             3)
                 read -p "Enter directory ID to delete: " id
+                # Delete directory
                 sqlite3 "$db_file" "DELETE FROM directory WHERE id=$id;"
+                echo "Directory deleted."
                 ;;
             4)
                 break
@@ -61,9 +75,11 @@ torrents_executor() {
 
     # Read directory entries from SQLite database
     # Loop through the entries and execute torrents
-    while read -r folder session; do
-        xterm -e "rtorrent -d '$folder' -s '$session'" &
+    while IFS='|' read -r folder session; do
+        # Add echo for clarity
         echo "rtorrent -d '$folder' -s '$session'"
+        # Enclose folder and session in quotes to handle spaces
+        xterm -e "rtorrent -d '$folder' -s '$session'" &
     done < <(sqlite3 "$db_file" "SELECT folder, session FROM directory;")
 }
 
