@@ -43,7 +43,7 @@ git clone https://codeberg.org/hecdelatorre/torrent-assistant.git
 You can run Torrent Assistant without cloning the repository using the following command:
 
 ```bash
-bash -c "$(curl -fsSL https://codeberg.org/hecdelatorre/torrent-assistant/raw/branch/main/index.sh)"
+bash -c "$(curl -fsSL https://codeberg.org/hecdelatorre/torrent-assistant/raw/branch/main/index-min.sh)"
 ```
 
 ### License
