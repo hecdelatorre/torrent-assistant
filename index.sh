@@ -29,31 +29,13 @@ directory_manager() {
 
         case $choice in
             1)
-                read -p "Enter folder directory: " folder
-                read -p "Enter session directory: " session
-                sqlite3 "$db_file" "INSERT INTO directory (folder, session) VALUES ('$folder', '$session');"
+                add_directory
                 ;;
             2)
-                echo "Directories:"
-                # Retrieve all directories
-                directories=$(sqlite3 "$db_file" "SELECT id, folder, session FROM directory;")
-                # Initialize counter
-                counter=1
-                # Loop through directories
-                while IFS='|' read -r id folder session; do
-                    echo "$counter - $folder - $session"
-                    # Update ID if necessary
-                    if [ "$counter" != "$id" ]; then
-                        sqlite3 "$db_file" "UPDATE directory SET id=$counter WHERE id=$id;"
-                    fi
-                    ((counter++))
-                done <<< "$directories"
+                view_directories
                 ;;
             3)
-                read -p "Enter directory ID to delete: " id
-                # Delete directory
-                sqlite3 "$db_file" "DELETE FROM directory WHERE id=$id;"
-                echo "Directory deleted."
+                delete_directory
                 ;;
             4)
                 break
@@ -63,6 +45,72 @@ directory_manager() {
                 ;;
         esac
     done
+}
+
+add_directory() {
+    read -p "Enter folder directory: " folder
+    read -p "Enter session directory: " session
+    sqlite3 "$db_file" "INSERT INTO directory (folder, session) VALUES ('$folder', '$session');"
+}
+
+# Function to count the number of directories
+count_directories() {
+    sqlite3 "$db_file" "SELECT COUNT(*) FROM directory;"
+}
+
+view_directories() {
+    # Count the number of directories
+    num_directories=$(count_directories)
+
+    if [ "$num_directories" -eq 0 ]; then
+        echo "You have no directories."
+    else
+        echo "Directories:"
+        # Retrieve all directories
+        directories=$(sqlite3 "$db_file" "SELECT id, folder, session FROM directory;")
+        # Initialize counter
+        counter=1
+        # Loop through directories
+        while IFS='|' read -r id folder session; do
+            echo -e "$counter - $folder\n    $session"
+            # Update ID if necessary
+            if [ "$counter" != "$id" ]; then
+                sqlite3 "$db_file" "UPDATE directory SET id=$counter WHERE id=$id;"
+            fi
+            ((counter++))
+        done <<< "$directories"
+    fi
+}
+
+delete_directory() {
+    # Count the number of directories
+    num_directories=$(count_directories)
+
+    if [ "$num_directories" -eq 0 ]; then
+        echo "You have no directories to delete."
+        return
+    fi
+
+    view_directories
+    
+    read -p "Enter directory ID to delete: " id
+
+    # Check if the entered ID is valid
+    if [[ ! "$id" =~ ^[0-9]+$ ]]; then
+        echo "Invalid directory ID. Please enter a valid ID."
+        return
+    fi
+
+    # Check if the entered ID exists in the database
+    id_exists=$(sqlite3 "$db_file" "SELECT COUNT(*) FROM directory WHERE id=$id;")
+    if [ "$id_exists" -eq 0 ]; then
+        echo "Directory ID $id does not exist."
+        return
+    fi
+
+    # Delete directory
+    sqlite3 "$db_file" "DELETE FROM directory WHERE id=$id;"
+    echo "Directory deleted."
 }
 
 # Function to execute torrents using xterm
@@ -80,6 +128,7 @@ torrents_executor() {
         echo "rtorrent -d '$folder' -s '$session'"
         # Enclose folder and session in quotes to handle spaces
         xterm -e "rtorrent -d '$folder' -s '$session'" &
+        sleep 2
     done < <(sqlite3 "$db_file" "SELECT folder, session FROM directory;")
 }
 
