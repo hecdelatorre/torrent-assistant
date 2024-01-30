@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
 db_dir="$HOME/.db-torrent"
 db_file="$db_dir/data.db"
 
@@ -19,12 +26,12 @@ initialize_db() {
 # Function to manage directories (CRUD operations)
 directory_manager() {
     while true; do
-        echo "Directory Manager"
-        echo "1. Create Directory"
-        echo "2. Add Directory"
-        echo "3. View Directories"
-        echo "4. Delete Directory"
-        echo "5. Back to Main Menu"
+        echo -e "${CYAN}Directory Manager${NC}"
+        echo -e "${YELLOW}1.${NC} Create Directory"
+        echo -e "${YELLOW}2.${NC} Add Directory"
+        echo -e "${YELLOW}3.${NC} View Directories"
+        echo -e "${YELLOW}4.${NC} Delete Directory"
+        echo -e "${YELLOW}5.${NC} Back to Main Menu"
 
         read -p "Enter your choice: " choice
 
@@ -45,7 +52,7 @@ directory_manager() {
                 break
                 ;;
             *)
-                echo "Invalid choice. Please enter a valid option."
+                echo -e "${RED}Invalid choice. Please enter a valid option.${NC}"
                 ;;
         esac
     done
@@ -55,7 +62,7 @@ directory_manager() {
 validate_directory() {
     local directory="$1"
     if [ ! -d "$directory" ]; then
-        echo "Directory $directory does not exist."
+        echo -e "${RED}Directory $directory does not exist.${NC}"
         return 1
     fi
 }
@@ -82,7 +89,7 @@ create_directory() {
         
             # Insert the directory into the database
             sqlite3 "$db_file" "INSERT INTO directory (folder, session) VALUES ('$path', '$full_path');"
-            echo "Directory created: $full_path"
+            echo -e "${GREEN}Directory created: $full_path${NC}"
             break
         fi
     done
@@ -103,7 +110,7 @@ add_directory() {
 
         if validate_directory "$folder" && validate_directory "$session"; then
             sqlite3 "$db_file" "INSERT INTO directory (folder, session) VALUES ('$folder', '$session');"
-            echo "Directory added: $folder"
+            echo -e "${GREEN}Directory added: $folder${NC}"
             break
         fi
     done
@@ -119,16 +126,16 @@ view_directories() {
     num_directories=$(count_directories)
 
     if [ "$num_directories" -eq 0 ]; then
-        echo "You have no directories."
+        echo -e "${YELLOW}You have no directories.${NC}"
     else
-        echo "Directories:"
+        echo -e "${CYAN}Directories:${NC}"
         # Retrieve all directories
         directories=$(sqlite3 "$db_file" "SELECT id, folder, session FROM directory;")
         # Initialize counter
         counter=1
         # Loop through directories
         while IFS='|' read -r id folder session; do
-            echo -e "$counter - $folder\n    $session"
+            echo -e "${YELLOW}$counter - $folder${NC}\n    $session"
             # Update ID if necessary
             if [ "$counter" != "$id" ]; then
                 sqlite3 "$db_file" "UPDATE directory SET id=$counter WHERE id=$id;"
@@ -143,7 +150,7 @@ delete_directory() {
     num_directories=$(count_directories)
 
     if [ "$num_directories" -eq 0 ]; then
-        echo "You have no directories to delete."
+        echo -e "${YELLOW}You have no directories to delete.${NC}"
         return
     fi
 
@@ -156,14 +163,14 @@ delete_directory() {
 
     # Check if the entered ID is valid
     if [[ ! "$id" =~ ^[0-9]+$ ]]; then
-        echo "Invalid directory ID. Please enter a valid ID."
+        echo -e "${RED}Invalid directory ID. Please enter a valid ID.${NC}"
         return
     fi
 
     # Check if the entered ID exists in the database
     id_exists=$(sqlite3 "$db_file" "SELECT COUNT(*) FROM directory WHERE id=$id;")
     if [ "$id_exists" -eq 0 ]; then
-        echo "Directory ID $id does not exist."
+        echo -e "${RED}Directory ID $id does not exist.${NC}"
         return
     fi
 
@@ -180,15 +187,15 @@ delete_directory() {
 
         # Delete directory from the database
         sqlite3 "$db_file" "DELETE FROM directory WHERE id=$id;"
-        echo "Directory deleted."
+        echo -e "${GREEN}Directory deleted.${NC}"
     else
-        echo "Invalid directory ID or associated directories not found."
+        echo -e "${RED}Invalid directory ID or associated directories not found.${NC}"
     fi
 }
 
 manual_execution() {
     while true; do
-        echo "Manual Execution"
+        echo -e "${CYAN}Manual Execution${NC}"
         view_directories
         read -p "Enter the directory ID to execute (or 0 to cancel): " id
         if [ "$id" -eq 0 ]; then
@@ -204,13 +211,13 @@ manual_execution() {
             if validate_directory "$directory" && validate_directory "$session"; then
                 # Execute torrent using xterm
                 xterm -e "rtorrent -d '$directory' -s '$session'" &
-                echo "Torrent started for directory ID $id."
+                echo -e "${GREEN}Torrent started for directory ID $id.${NC}"
                 break
             else
-                echo "Invalid directory ID or associated directories not found."
+                echo -e "${RED}Invalid directory ID or associated directories not found.${NC}"
             fi
         else
-            echo "Invalid input. Please enter a valid directory ID."
+            echo -e "${RED}Invalid input. Please enter a valid directory ID.${NC}"
         fi
     done
 }
@@ -219,7 +226,7 @@ manual_execution() {
 torrents_executor() {
     # Check if .db-torrent directory exists
     if [ ! -d "$db_dir" ]; then
-        echo "Error: .db-torrent directory not found. Exiting."
+        echo -e "${RED}Error: .db-torrent directory not found. Exiting.${NC}"
         exit 1
     fi
 
@@ -236,11 +243,11 @@ torrents_executor() {
 
 # Main Menu
 while true; do
-    echo "Main Menu"
-    echo "1. Directory Manager"
-    echo "2. Torrent Executor"
-    echo "3. Manual Execution"
-    echo "4. Exit"
+    echo -e "${CYAN}Main Menu${NC}"
+    echo -e "${YELLOW}1.${NC} Directory Manager"
+    echo -e "${YELLOW}2.${NC} Torrent Executor"
+    echo -e "${YELLOW}3.${NC} Manual Execution"
+    echo -e "${YELLOW}4.${NC} Exit"
 
     read -p "Enter your choice: " main_choice
 
@@ -256,11 +263,11 @@ while true; do
             manual_execution
             ;;
         4)
-            echo "Exiting..."
+            echo -e "${CYAN}Exiting...${NC}"
             exit 0
             ;;
         *)
-            echo "Invalid choice. Please enter a valid option."
+            echo -e "${RED}Invalid choice. Please enter a valid option.${NC}"
             ;;
     esac
 done
