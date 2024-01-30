@@ -51,6 +51,7 @@ directory_manager() {
     done
 }
 
+# Function to validate if a directory exists
 validate_directory() {
     local directory="$1"
     if [ ! -d "$directory" ]; then
@@ -61,7 +62,11 @@ validate_directory() {
 
 create_directory() {
     while true; do
-        read -p "Enter parent folder directory: " parent_folder
+        read -p "Enter parent folder directory (or 0 to cancel): " parent_folder
+        if [ "$parent_folder" -eq 0 ]; then
+            break
+        fi
+        
         read -p "Enter name for the download directory: " download_name
         
         if validate_directory "$parent_folder"; then
@@ -85,8 +90,16 @@ create_directory() {
 
 add_directory() {
     while true; do
-        read -p "Enter folder directory: " folder
+        read -p "Enter folder directory (or 0 to cancel): " folder
+        if [ "$folder" -eq 0 ]; then
+            break
+        fi
+        
         read -p "Enter session directory: " session
+
+        if [ "$session" -eq 0 ]; then
+            break
+        fi
 
         if validate_directory "$folder" && validate_directory "$session"; then
             sqlite3 "$db_file" "INSERT INTO directory (folder, session) VALUES ('$folder', '$session');"
@@ -136,7 +149,10 @@ delete_directory() {
 
     view_directories
     
-    read -p "Enter directory ID to delete: " id
+    read -p "Enter directory ID to delete (or 0 to cancel): " id
+    if [ "$id" -eq 0 ]; then
+        return
+    fi
 
     # Check if the entered ID is valid
     if [[ ! "$id" =~ ^[0-9]+$ ]]; then
@@ -151,9 +167,52 @@ delete_directory() {
         return
     fi
 
-    # Delete directory
-    sqlite3 "$db_file" "DELETE FROM directory WHERE id=$id;"
-    echo "Directory deleted."
+    # Fetch directory and session from the database
+    directory=$(sqlite3 "$db_file" "SELECT folder FROM directory WHERE id=$id;")
+    session=$(sqlite3 "$db_file" "SELECT session FROM directory WHERE id=$id;")
+
+    # Validate if directory and session exist
+    if validate_directory "$directory" && validate_directory "$session"; then
+        # Delete session directory
+        rm -rf "$session"
+        # Delete download directory
+        rm -rf "$directory"
+
+        # Delete directory from the database
+        sqlite3 "$db_file" "DELETE FROM directory WHERE id=$id;"
+        echo "Directory deleted."
+    else
+        echo "Invalid directory ID or associated directories not found."
+    fi
+}
+
+manual_execution() {
+    while true; do
+        echo "Manual Execution"
+        view_directories
+        read -p "Enter the directory ID to execute (or 0 to cancel): " id
+        if [ "$id" -eq 0 ]; then
+            break
+        fi
+        
+        if [[ "$id" =~ ^[0-9]+$ ]]; then
+            # Fetch directory and session from the database
+            directory=$(sqlite3 "$db_file" "SELECT folder FROM directory WHERE id=$id;")
+            session=$(sqlite3 "$db_file" "SELECT session FROM directory WHERE id=$id;")
+
+            # Validate if directory and session exist
+            if validate_directory "$directory" && validate_directory "$session"; then
+                # Execute torrent using xterm
+                xterm -e "rtorrent -d '$directory' -s '$session'" &
+                echo "Torrent started for directory ID $id."
+                break
+            else
+                echo "Invalid directory ID or associated directories not found."
+            fi
+        else
+            echo "Invalid input. Please enter a valid directory ID."
+        fi
+    done
 }
 
 # Function to execute torrents using xterm
@@ -179,8 +238,9 @@ torrents_executor() {
 while true; do
     echo "Main Menu"
     echo "1. Directory Manager"
-    echo "2. Torrents Executor"
-    echo "3. Exit"
+    echo "2. Torrent Executor"
+    echo "3. Manual Execution"
+    echo "4. Exit"
 
     read -p "Enter your choice: " main_choice
 
@@ -193,6 +253,9 @@ while true; do
             torrents_executor
             ;;
         3)
+            manual_execution
+            ;;
+        4)
             echo "Exiting..."
             exit 0
             ;;
