@@ -20,24 +20,28 @@ initialize_db() {
 directory_manager() {
     while true; do
         echo "Directory Manager"
-        echo "1. Add Directory"
-        echo "2. View Directories"
-        echo "3. Delete Directory"
-        echo "4. Back to Main Menu"
+        echo "1. Create Directory"
+        echo "2. Add Directory"
+        echo "3. View Directories"
+        echo "4. Delete Directory"
+        echo "5. Back to Main Menu"
 
         read -p "Enter your choice: " choice
 
         case $choice in
             1)
-                add_directory
+                create_directory
                 ;;
             2)
-                view_directories
+                add_directory
                 ;;
             3)
-                delete_directory
+                view_directories
                 ;;
             4)
+                delete_directory
+                ;;
+            5)
                 break
                 ;;
             *)
@@ -47,10 +51,49 @@ directory_manager() {
     done
 }
 
+validate_directory() {
+    local directory="$1"
+    if [ ! -d "$directory" ]; then
+        echo "Directory $directory does not exist."
+        return 1
+    fi
+}
+
+create_directory() {
+    while true; do
+        read -p "Enter parent folder directory: " parent_folder
+        read -p "Enter name for the download directory: " download_name
+        
+        if validate_directory "$parent_folder"; then
+            # Generate the unique identifier
+            UUID_TEM=$(uuidgen -s -r)
+            unique_id=${UUID_TEM:0:8}
+        
+            # Create the directory structure
+            path="${parent_folder}/${download_name}"
+            full_path="${parent_folder}/${download_name}/.${unique_id}"
+            mkdir "$path"
+            mkdir "$full_path"
+        
+            # Insert the directory into the database
+            sqlite3 "$db_file" "INSERT INTO directory (folder, session) VALUES ('$path', '$full_path');"
+            echo "Directory created: $full_path"
+            break
+        fi
+    done
+}
+
 add_directory() {
-    read -p "Enter folder directory: " folder
-    read -p "Enter session directory: " session
-    sqlite3 "$db_file" "INSERT INTO directory (folder, session) VALUES ('$folder', '$session');"
+    while true; do
+        read -p "Enter folder directory: " folder
+        read -p "Enter session directory: " session
+
+        if validate_directory "$folder" && validate_directory "$session"; then
+            sqlite3 "$db_file" "INSERT INTO directory (folder, session) VALUES ('$folder', '$session');"
+            echo "Directory added: $folder"
+            break
+        fi
+    done
 }
 
 # Function to count the number of directories
