@@ -70,7 +70,7 @@ validate_directory() {
 create_directory() {
     while true; do
         read -p "Enter parent folder directory (or 0 to cancel): " parent_folder
-        if [ "$parent_folder" -eq 0 ]; then
+        if [ "$parent_folder" = "0" ] || [ -z "$parent_folder" ]; then
             break
         fi
         
@@ -98,7 +98,7 @@ create_directory() {
 add_directory() {
     while true; do
         read -p "Enter folder directory (or 0 to cancel): " folder
-        if [ "$folder" -eq 0 ]; then
+        if [ "$folder" = "0" ] || [ -z "$folder" ]; then
             break
         fi
         
