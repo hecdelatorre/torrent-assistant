@@ -1,6 +1,3 @@
-Here's the minified version of your bash script:
-
-```bash
 #!/bin/bash
 R='\033[0;31m'
 G='\033[0;32m'
@@ -20,6 +17,3 @@ i_d(){ while true;do read -p "Enter parent folder directory (or 0 to cancel): " 
 v_d(){ n=$(c_d);if [ "$n" -eq 0 ];then echo -e "${Y}You have no directories.${N}";else echo -e "${C}Directories:${N}";d=$(sqlite3 "$f" "SELECT id, folder, session FROM directory;");c=1;while IFS='|' read -r id folder session;do echo -e "${Y}$c - $folder${N}\n    $session";[ "$c" != "$id" ]&&sqlite3 "$f" "UPDATE directory SET id=$c WHERE id=$id;";((c++));done<<<"$d";fi;}
 m_e(){ if [ ! -d "$d" ];then echo -e "${R}Error: .db-torrent directory not found. Exiting.${N}";exit 1;fi;while IFS='|' read -r folder session;do echo "rtorrent -d '$folder' -s '$session'";xterm -e "rtorrent -d '$folder' -s '$session'" & sleep 2;done< <(sqlite3 "$f" "SELECT folder, session FROM directory;");}
 while true;do echo -e "${C}Main Menu${N}";echo -e "${Y}1.${N} Directory Manager";echo -e "${Y}2.${N} Torrent Executor";echo -e "${Y}3.${N} Manual Execution";echo -e "${Y}4.${N} Exit";read -p "Enter your choice: " m_c;case $m_c in 1)i;m;;2)m_e;;3)m_e;;4)echo -e "${C}Exiting...${N}";exit 0;;*)echo -e "${R}Invalid choice. Please enter a valid option.${N}";;esac;done
-```
-
-This minified version preserves the functionality and shortens variable names as per your request.
